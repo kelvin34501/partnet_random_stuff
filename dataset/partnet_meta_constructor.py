@@ -54,7 +54,7 @@ class PartnetMetaConstructor():
             tree['height'] = 1
         return res, tree['height']
 
-    def _hier(self, tree, item_id):
+    def _hier(self, tree, item_id, dirname):
         queue = [(0, tree)]
         visited = set()
         while len(queue) > 0:
@@ -63,12 +63,14 @@ class PartnetMetaConstructor():
                 visited.add(repr(node))
                 # print('  ' * depth, depth, node['height'], node['objs'])
                 global_id = str(item_id) + '_' + str(node['id'])
+                objs_path = os.path.join(self.path, dirname, 'objs')
                 self.parts.append({
                     'global_id': global_id,
-                    'anno_id': item_id,
+                    'item_id': item_id,
                     'part_relative_id': node['id'],
                     'name': node['name'],
                     'text': node['text'],
+                    'objs_dir': objs_path,
                     'objs': node['objs'],
                     'depth': depth,
                     'height': node['height']
@@ -101,7 +103,7 @@ class PartnetMetaConstructor():
             assert len(tree_raw) == 1
             tree = deepcopy(tree_raw[0])
         self._postfix(tree)
-        self._hier(tree, item_id)
+        self._hier(tree, item_id, dirname)
 
     def _parse_meta(self, item_id, dirname):
         item_path = os.path.join(self.path, dirname)
@@ -130,8 +132,8 @@ class PartnetMetaConstructor():
             self.df = pd.read_csv(self.cache_file, usecols=cfg.columns)
             self.parts = pd.read_csv(self.cache_parts, usecols=cfg.parts_columns)
             self.part_parent_child = pd.read_csv(self.cache_part_parent_child, usecols=cfg.part_parent_child_columns)
-            # self.part_sibling = pd.read_csv(self.cache_part_sibling, usecols=cfg.part_sibling_columns)
-            self.part_leaf = pd.read_csv(self.part_leaf, usecols=cfg.part_leaf_columns)
+            self.part_sibling = pd.read_csv(self.cache_part_sibling, usecols=cfg.part_sibling_columns)
+            self.part_leaf = pd.read_csv(self.cache_part_leaf, usecols=cfg.part_leaf_columns)
         else:
             self.df = []
             self.parts = []

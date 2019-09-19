@@ -14,3 +14,13 @@ def sample_points_factory(num_points):
         return x[mask, :]
 
     return _sample_points
+
+
+def sample_choice_points_factory(num_points):
+    def _sample_points(x):
+        total_points = x.shape[0]
+        mask = np.arange(total_points)
+        mask = np.random.choice(mask, num_points)
+        return x[mask, :]
+
+    return _sample_points
