@@ -1,24 +1,4 @@
 import numpy as np
-# import open3d as o3d
-from util import stdout_redirected
-import pymesh
-
-
-def load_pc(path):
-    # with stdout_redirected():
-    #     res = o3d.io.read_point_cloud(path)
-    res = pymesh.load_mesh(path)
-    return res
-
-
-def dump_pc(path, pc):
-    # with stdout_redirected():
-    #     o3d.io.write_point_cloud(path, pc)
-    pymesh.save_mesh(path, pc)
-
-
-def get_pc(pc):
-    return pc.vertices
 
 
 class Dataset(object):

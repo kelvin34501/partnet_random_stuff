@@ -13,7 +13,7 @@ cfg = __C
 
 BASE_PATH = os.path.dirname(__file__)
 
-__C.BATCH_SIZE = 32
+__C.BATCH_SIZE = 1
 __C.SAMPLE_POINTS = 8192  # None for no sampling
 __C.MAX_EPOCH = 200
 
