@@ -1,15 +1,8 @@
 from dataset.partnet_dataset import PartnetDataset, PartnetDataLoader
-<<<<<<< HEAD
-from dataset.preprocess import identity
-
-from config import cfg
-from dataset.mesh_util import get_bbox, draw_boxes3d
-=======
 from dataset.preprocess import sample_points_factory, identity
 
 from config import cfg
 from mesh_util import get_border_edge, get_bbox, draw_boxes3d
->>>>>>> e95a1db620a50fce4c4192e77745702d4aa319e5
 
 DATASET = PartnetDataset(path=cfg.PARTNET, cat=cfg.CAT)  # cache_maxsize=None -> no pop
 DATASET.reload_traverse('leaf')
