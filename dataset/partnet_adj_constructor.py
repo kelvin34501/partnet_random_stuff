@@ -7,6 +7,7 @@ from dataset_util import Dataset
 from mesh_util import load_pc, get_pc
 from partnet_config import cfg
 from partnet_meta_constructor import PartnetMetaConstructor
+from partnet_bbox_constructor import PartnetBBoxDataset
 from preprocess import *
 
 import trimesh
@@ -27,13 +28,15 @@ class PartnetAdjacencyConstructor():
         self.part_sibling = self.meta_constructor.part_sibling
         self.part_leaf = self.meta_constructor.part_leaf
 
+        self.bbox_dataset = PartnetBBoxDataset(self.meta_constructor)
+
         if graph_dir is None:
             self.graph_dir = cfg.graph_dir
         else:
             self.graph_dir = graph_dir
         self.use_cache = use_cache
 
-    def _get_part_id_of_instance(self, item_id):
+    def _get_part_of_instance(self, item_id):
         all_parts = self.parts[self.parts['item_id'] == item_id]['global_id']
         joined_parts_id = self.part_leaf[self.part_leaf['leaf_global_id'].isin(all_parts)]['leaf_global_id']
         joined_parts = self.parts[self.parts['global_id'].isin(joined_parts_id)]
@@ -55,16 +58,13 @@ class PartnetAdjacencyConstructor():
     def construct_adj_graph(self):
         index_list = list(self.meta.index)
         for item_id in index_list:
-            leaf_desc = self._get_part_id_of_instance(item_id)
-            res_list = []
-            for local_id in range(len(leaf_desc)):
-                mesh = self._load_mesh(leaf_desc.iloc[local_id])
-                res_list.append((local_id, mesh))
-            adj_mat = np.zeros((len(leaf_desc), len(leaf_desc)))
-            for part_a, part_b in combinations(res_list, 2):
-                part_a_id, part_a_mesh = part_a
-                part_b_id, part_b_mesh = part_b
-
+            leaf_desc = self._get_part_of_instance(item_id)
+            leaf_id = list(leaf_desc['global_id'])
+            adj_mat = np.zeros((len(leaf_id), len(leaf_id)))
+            for id_a, id_b in combinations(leaf_id, 2):
+                bbox_a = self.bbox_dataset[id_a]
+                bbox_b = self.bbox_dataset[id_b]
+                print(bbox_a, bbox_b)
 
 
 if __name__ == '__main__':

@@ -42,6 +42,48 @@ def get_bbox(mesh):
     return np.row_stack(res), extents_raw, transform
 
 
+def get_brect(plane_mesh):
+    pc = plane_mesh.vertices
+    p_mean = np.mean(pc, axis=0)
+    cov_mat = np.cov(pc, rowvar=False, bias=True)
+    eign, eigv = np.linalg.eigh(cov_mat)
+    u, v, n = eigv[:, 2], eigv[:, 1], eigv[:, 0]
+    # print(eign)
+    # print(u, v)
+    # print(np.linalg.norm(u), np.linalg.norm(v), np.dot(u, v))
+    rotation = np.array((n, v, u)).T
+    pc_projected = np.dot(rotation, pc.T).T
+
+    pc_projected_min = np.min(pc_projected, axis=0)
+    pc_projected_max = np.max(pc_projected, axis=0)
+
+    pc_projected_rect_list = [
+        pc_projected_min,
+        np.array((pc_projected_min[0], pc_projected_min[1], pc_projected_max[2])),
+        np.array((pc_projected_min[0], pc_projected_max[1], pc_projected_min[2])),
+        np.array((pc_projected_min[0], pc_projected_max[1], pc_projected_max[2])),
+        np.array((pc_projected_max[0], pc_projected_min[1], pc_projected_min[2])),
+        np.array((pc_projected_max[0], pc_projected_min[1], pc_projected_max[2])),
+        np.array((pc_projected_max[0], pc_projected_max[1], pc_projected_min[2])),
+        pc_projected_max
+    ]
+    pc_projected_rect = np.stack(pc_projected_rect_list)
+    bbox = np.dot(rotation.T, pc_projected_rect.T).T
+
+    # todo return transformation
+
+    return bbox, None, None
+
+
+def get_bbox_extent(bbox):
+    # hard-coded
+    pairs = [(0, 1), (0, 2), (0, 4)]
+    res = []
+    for a, b in pairs:
+        res.append(np.linalg.norm(bbox[a, :] - bbox[b, :]))
+    return np.array(res)
+
+
 def get_border_edge(mesh):
     vertices, edges = pymesh.mesh_to_graph(mesh)
     print(np.all(vertices == mesh.vertices))
