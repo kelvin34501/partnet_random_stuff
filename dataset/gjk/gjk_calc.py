@@ -1,7 +1,9 @@
 import ctypes
 import numpy as np
+import os
 
-lib = ctypes.cdll.LoadLibrary('./gjk_wrapper.so')
+BASE_PATH = os.path.dirname(__file__)
+lib = ctypes.cdll.LoadLibrary(os.path.join(BASE_PATH, 'gjk_wrapper.so'))
 dist_squared_func = lib.polyhedron_intersect_polyhedron
 dist_squared_func.restype = ctypes.c_double
 

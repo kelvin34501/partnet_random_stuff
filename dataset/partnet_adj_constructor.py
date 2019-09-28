@@ -9,6 +9,7 @@ from partnet_config import cfg
 from partnet_meta_constructor import PartnetMetaConstructor
 from partnet_bbox_constructor import PartnetBBoxDataset
 from preprocess import *
+from gjk import gjk_calc
 
 import trimesh
 import pymesh
@@ -60,11 +61,17 @@ class PartnetAdjacencyConstructor():
         for item_id in index_list:
             leaf_desc = self._get_part_of_instance(item_id)
             leaf_id = list(leaf_desc['global_id'])
-            adj_mat = np.zeros((len(leaf_id), len(leaf_id)))
+            leaf_bbox = [self.bbox_dataset[id] for id in leaf_id]
+            leaf_id_map = {leaf_id[i]: i for i in range(0, len(leaf_id))}
+            adj_mat = np.eye(len(leaf_id))
+            print(leaf_id_map)
             for id_a, id_b in combinations(leaf_id, 2):
-                bbox_a = self.bbox_dataset[id_a]
-                bbox_b = self.bbox_dataset[id_b]
-                print(bbox_a, bbox_b)
+                bbox_a = leaf_bbox[leaf_id_map[id_a]]
+                bbox_b = leaf_bbox[leaf_id_map[id_b]]
+                bbox_dist = gjk_calc.calc(bbox_a, bbox_b)
+                adj_mat[leaf_id_map[id_a], leaf_id_map[id_b]] = bbox_dist
+                adj_mat[leaf_id_map[id_b], leaf_id_map[id_a]] = bbox_dist
+            print(adj_mat)
 
 
 if __name__ == '__main__':
