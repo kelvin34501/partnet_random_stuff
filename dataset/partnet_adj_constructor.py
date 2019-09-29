@@ -4,7 +4,7 @@ import sys
 BASE_PATH = os.path.dirname(__file__)
 sys.path.append(BASE_PATH)
 from dataset_util import Dataset
-from mesh_util import load_pc, get_pc
+from mesh_util import load_pc, get_pc, draw_boxes3d
 from partnet_config import cfg
 from partnet_meta_constructor import PartnetMetaConstructor
 from partnet_bbox_constructor import PartnetBBoxDataset
@@ -16,6 +16,8 @@ import pymesh
 import random
 import numpy as np
 import pandas as pd
+import pickle
+from tqdm import tqdm
 
 from itertools import combinations
 
@@ -56,22 +58,66 @@ class PartnetAdjacencyConstructor():
         mesh = pymesh.merge_meshes(mesh_list)
         return mesh
 
-    def construct_adj_graph(self):
+    def construct_adj_graph(self, verbose=False):
+        if self.use_cache:
+            return None
+
+        if verbose:
+            from mayavi import mlab
+
         index_list = list(self.meta.index)
-        for item_id in index_list:
+        for item_id in tqdm(index_list):
+            if verbose:
+                print("============")
             leaf_desc = self._get_part_of_instance(item_id)
             leaf_id = list(leaf_desc['global_id'])
             leaf_bbox = [self.bbox_dataset[id] for id in leaf_id]
+            mesh_list = []
+            for i in range(len(leaf_desc)):
+                mesh_list.append(self._load_mesh(leaf_desc.iloc[i]))
             leaf_id_map = {leaf_id[i]: i for i in range(0, len(leaf_id))}
+
             adj_mat = np.eye(len(leaf_id))
-            print(leaf_id_map)
+            if verbose:
+                print(leaf_id_map)
             for id_a, id_b in combinations(leaf_id, 2):
                 bbox_a = leaf_bbox[leaf_id_map[id_a]]
                 bbox_b = leaf_bbox[leaf_id_map[id_b]]
                 bbox_dist = gjk_calc.calc(bbox_a, bbox_b)
                 adj_mat[leaf_id_map[id_a], leaf_id_map[id_b]] = bbox_dist
                 adj_mat[leaf_id_map[id_b], leaf_id_map[id_a]] = bbox_dist
-            print(adj_mat)
+            if verbose:
+                print(adj_mat)
+                for mesh in mesh_list:
+                    mlab.triangular_mesh(mesh.vertices[:, 0], mesh.vertices[:, 1], mesh.vertices[:, 2], mesh.faces)
+                draw_boxes3d(np.stack(leaf_bbox))
+                mlab.show()
+            adj_res = adj_mat.copy()
+            adj_res = np.logical_not(adj_res).astype(np.int)
+
+            # dump things
+            with open(os.path.join(self.graph_dir, str(item_id) + '_mapping.pkl'), "wb") as stream:
+                pickle.dump(leaf_id_map, stream)
+            np.savetxt(os.path.join(self.graph_dir, str(item_id) + '_dist.txt'), adj_mat)
+            np.savetxt(os.path.join(self.graph_dir, str(item_id) + '.txt'), adj_res)
+
+
+class PartnetAdjacencyDataset(Dataset):
+    def __init__(self, meta_constructor, graph_dir=None):
+        self.meta_constructor = meta_constructor
+        self.meta = self.meta_constructor.df
+        self.bbox_dataset = PartnetBBoxDataset(self.meta_constructor)
+
+        if graph_dir is None:
+            self.graph_dir = cfg.graph_dir
+        else:
+            self.graph_dir = graph_dir
+
+    def __getitem__(self, item):
+        pass
+
+    def __len__(self):
+        return len(self.meta)
 
 
 if __name__ == '__main__':
