@@ -23,7 +23,7 @@ from itertools import combinations
 
 
 class PartnetAdjacencyConstructor():
-    def __init__(self, meta_constructor, graph_dir=None, use_cache=True):
+    def __init__(self, meta_constructor, graph_dir=None):
         self.meta_constructor = meta_constructor
         self.meta = self.meta_constructor.df
         self.parts = self.meta_constructor.parts
@@ -37,7 +37,6 @@ class PartnetAdjacencyConstructor():
             self.graph_dir = cfg.graph_dir
         else:
             self.graph_dir = graph_dir
-        self.use_cache = use_cache
 
     def _get_part_of_instance(self, item_id):
         all_parts = self.parts[self.parts['item_id'] == item_id]['global_id']
@@ -58,15 +57,16 @@ class PartnetAdjacencyConstructor():
         mesh = pymesh.merge_meshes(mesh_list)
         return mesh
 
-    def construct_adj_graph(self, verbose=False):
-        if self.use_cache:
+    def construct_adj_graph(self, verbose=False, use_cache=True):
+        if use_cache:
             return None
 
         if verbose:
             from mayavi import mlab
 
         index_list = list(self.meta.index)
-        for item_id in tqdm(index_list):
+        progress = tqdm(index_list)
+        for item_id in progress:
             if verbose:
                 print("============")
             leaf_desc = self._get_part_of_instance(item_id)
@@ -83,7 +83,14 @@ class PartnetAdjacencyConstructor():
             for id_a, id_b in combinations(leaf_id, 2):
                 bbox_a = leaf_bbox[leaf_id_map[id_a]]
                 bbox_b = leaf_bbox[leaf_id_map[id_b]]
-                bbox_dist = gjk_calc.calc(bbox_a, bbox_b)
+                try:
+                    bbox_dist = gjk_calc.calc(bbox_a, bbox_b)
+                except Exception:
+                    progress.write('=======')
+                    progress.write('GJK Error Detected for {}'.format(item_id))
+                    progress.write('More information:')
+                    progress.write(self.meta.iloc[item_id])
+                    bbox_dist = 10.0
                 adj_mat[leaf_id_map[id_a], leaf_id_map[id_b]] = bbox_dist
                 adj_mat[leaf_id_map[id_b], leaf_id_map[id_a]] = bbox_dist
             if verbose:
@@ -124,4 +131,4 @@ if __name__ == '__main__':
     m = PartnetMetaConstructor(cfg.partnet)
     m.construct_meta()
     a = PartnetAdjacencyConstructor(m)
-    a.construct_adj_graph()
+    a.construct_adj_graph(use_cache=False)
