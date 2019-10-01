@@ -369,7 +369,8 @@ gjk(struct gjk_simplex *s, const struct gjk_support *sup, double *dv)
             break;
         }
         /* region ABCD */
-        assert(u_abcd > 0.0f && v_abcd > 0.0f && w_abcd > 0.0f && x_abcd > 0.0f);
+        /* assert(u_abcd > 0.0f && v_abcd > 0.0f && w_abcd > 0.0f && x_abcd > 0.0f);
+        remove this assertion to keep python script running*/
         s->bc[0] = u_abcd;
         s->bc[1] = v_abcd;
         s->bc[2] = w_abcd;

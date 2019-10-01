@@ -10,6 +10,7 @@ from partnet_meta_constructor import PartnetMetaConstructor
 from partnet_bbox_constructor import PartnetBBoxDataset
 from preprocess import *
 from gjk import gjk_calc
+from multiprocessing import Process
 
 import trimesh
 import pymesh
@@ -85,7 +86,8 @@ class PartnetAdjacencyConstructor():
                 bbox_b = leaf_bbox[leaf_id_map[id_b]]
                 try:
                     bbox_dist = gjk_calc.calc(bbox_a, bbox_b)
-                except Exception:
+                except Exception as e:
+                    progress.write(e)
                     progress.write('=======')
                     progress.write('GJK Error Detected for {}'.format(item_id))
                     progress.write('More information:')
