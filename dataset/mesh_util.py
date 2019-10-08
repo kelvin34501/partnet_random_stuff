@@ -70,9 +70,14 @@ def get_brect(plane_mesh):
     pc_projected_rect = np.stack(pc_projected_rect_list)
     bbox = np.dot(rotation.T, pc_projected_rect.T).T
 
-    # todo return transformation
+    extent = pc_projected_max - pc_projected_min
+    transform = np.zeros((4, 4))
+    transform[:3, :3] = rotation.T
+    centroid = np.dot(rotation.T, (pc_projected_max + pc_projected_min) / 2)
+    transform[:3, 3] = centroid
+    transform[3, 3] = 1
 
-    return bbox, None, None
+    return bbox, transform, extent
 
 
 def get_bbox_extent(bbox):

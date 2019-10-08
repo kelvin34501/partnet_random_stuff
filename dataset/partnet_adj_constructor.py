@@ -4,7 +4,7 @@ import sys
 BASE_PATH = os.path.dirname(__file__)
 sys.path.append(BASE_PATH)
 from dataset_util import Dataset
-from mesh_util import load_pc, get_pc, draw_boxes3d, get_bbox_volume
+from mesh_util import load_pc, get_pc, draw_boxes3d, get_bbox_volume, get_bbox_extent
 from partnet_config import cfg
 from partnet_meta_constructor import PartnetMetaConstructor
 from partnet_bbox_constructor import PartnetBBoxDataset
@@ -133,8 +133,31 @@ class PartnetAdjacencyDataset(Dataset):
         else:
             self.graph_dir = graph_dir
 
-    def __getitem__(self, item):
-        pass
+    @staticmethod
+    def toposort(adjmat):
+        closed = []
+        adjmat = adjmat.copy()
+        try:
+            vertmap = np.arange(adjmat.shape[0])
+        except Exception as exc:
+            return [0]
+
+        while vertmap.size > 0:
+            indegree = np.sum(adjmat, axis=0)
+            picked = np.random.choice(np.where(indegree == 0)[0])
+            closed.append(vertmap[picked])
+            vertmap = np.delete(vertmap, picked, axis=0)
+            adjmat = np.delete(np.delete(adjmat, picked, axis=0), picked, axis=1)
+        return closed
+
+    def __getitem__(self, index):
+        adjmat = np.loadtxt(os.path.join(self.graph_dir, '{}_directional.txt'.format(index)))
+        with open(os.path.join(self.graph_dir, '{}_mapping.pkl'.format(index)), "rb") as stream:
+            idmap = pickle.load(stream)
+        rev_idmap = {v: k for k, v in idmap.items()}
+        sortee = self.toposort(adjmat)
+        res = [self.bbox_dataset[rev_idmap[idx]] for idx in sortee]
+        return res
 
     def __len__(self):
         return len(self.meta)
@@ -143,5 +166,8 @@ class PartnetAdjacencyDataset(Dataset):
 if __name__ == '__main__':
     m = PartnetMetaConstructor(cfg.partnet)
     m.construct_meta()
-    a = PartnetAdjacencyConstructor(m)
-    a.construct_adj_graph(use_cache=False)
+    # a = PartnetAdjacencyConstructor(m)
+    # a.construct_adj_graph(use_cache=False)
+    d = PartnetAdjacencyDataset(m)
+    for idx in range(len(d)):
+        print([get_bbox_extent(bbox) for bbox in d[idx]])
