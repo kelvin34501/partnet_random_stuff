@@ -4,7 +4,7 @@ import sys
 BASE_PATH = os.path.dirname(__file__)
 sys.path.append(BASE_PATH)
 from dataset_util import Dataset
-from mesh_util import load_pc, get_pc, draw_boxes3d
+from mesh_util import load_pc, get_pc, draw_boxes3d, get_bbox_volume
 from partnet_config import cfg
 from partnet_meta_constructor import PartnetMetaConstructor
 from partnet_bbox_constructor import PartnetBBoxDataset
@@ -79,6 +79,7 @@ class PartnetAdjacencyConstructor():
             leaf_id_map = {leaf_id[i]: i for i in range(0, len(leaf_id))}
 
             adj_mat = np.eye(len(leaf_id))
+            adj_dir_mat = np.eye(len(leaf_id))
             if verbose:
                 print(leaf_id_map)
             for id_a, id_b in combinations(leaf_id, 2):
@@ -95,6 +96,12 @@ class PartnetAdjacencyConstructor():
                     bbox_dist = 10.0
                 adj_mat[leaf_id_map[id_a], leaf_id_map[id_b]] = bbox_dist
                 adj_mat[leaf_id_map[id_b], leaf_id_map[id_a]] = bbox_dist
+                if get_bbox_volume(bbox_a) >= get_bbox_volume(bbox_b):
+                    adj_dir_mat[leaf_id_map[id_a], leaf_id_map[id_b]] = bbox_dist
+                    adj_dir_mat[leaf_id_map[id_b], leaf_id_map[id_a]] = 1.0
+                else:
+                    adj_dir_mat[leaf_id_map[id_a], leaf_id_map[id_b]] = 1.0
+                    adj_dir_mat[leaf_id_map[id_b], leaf_id_map[id_a]] = bbox_dist
             if verbose:
                 print(adj_mat)
                 for mesh in mesh_list:
@@ -103,12 +110,16 @@ class PartnetAdjacencyConstructor():
                 mlab.show()
             adj_res = adj_mat.copy()
             adj_res = np.logical_not(adj_res).astype(np.int)
+            adj_dir_res = adj_dir_mat.copy()
+            adj_dir_res = np.logical_not(adj_dir_res).astype(np.int)
 
             # dump things
             with open(os.path.join(self.graph_dir, str(item_id) + '_mapping.pkl'), "wb") as stream:
                 pickle.dump(leaf_id_map, stream)
             np.savetxt(os.path.join(self.graph_dir, str(item_id) + '_dist.txt'), adj_mat)
             np.savetxt(os.path.join(self.graph_dir, str(item_id) + '.txt'), adj_res)
+            np.savetxt(os.path.join(self.graph_dir, str(item_id) + '_dist_directional.txt'), adj_dir_mat)
+            np.savetxt(os.path.join(self.graph_dir, str(item_id) + '_directional.txt'), adj_dir_res)
 
 
 class PartnetAdjacencyDataset(Dataset):

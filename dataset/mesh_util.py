@@ -84,6 +84,15 @@ def get_bbox_extent(bbox):
     return np.array(res)
 
 
+def get_bbox_volume(bbox):
+    # hard-coded
+    pairs = [(0, 1), (0, 2), (0, 4)]
+    res = []
+    for a, b in pairs:
+        res.append(np.linalg.norm(bbox[a, :] - bbox[b, :]))
+    return res[0] * res[1] * res[2]
+
+
 def get_border_edge(mesh):
     vertices, edges = pymesh.mesh_to_graph(mesh)
     print(np.all(vertices == mesh.vertices))
